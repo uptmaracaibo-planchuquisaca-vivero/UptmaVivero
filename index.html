@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Plan Chuquisaca · Sembrando Vida en Venezuela</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --verde-oscuro: #1a6b3c;
+      --verde-medio: #0d9b6a;
+      --verde-mint: #e8f8f0;
+      --verde-claro-bg: #f0faf5;
+      --blanco: #ffffff;
+      --negro: #111827;
+      --gris-texto: #4b5563;
+      --gris-borde: #e5e7eb;
+      --rosa: #e83e8c;
+      --naranja: #f39c12;
+      --azul-oscuro: #0f2b3d;
+      --sombra-suave: 0 20px 30px -12px rgba(0, 0, 0, 0.08);
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 16px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--blanco);
+      color: var(--negro);
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+    }
+
+    /* BOTÓN HAMBURGUESA */
+    .menu-toggle {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      width: 52px;
+      height: 52px;
+      background: var(--verde-oscuro);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 1100;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      transition: transform 0.2s ease;
+      border: none;
+      color: white;
+      font-size: 26px;
+    }
+    .menu-toggle:hover { transform: scale(1.03); background: #14633a; }
+
+    /* DRAWER */
+    .drawer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 320px;
+      height: 100%;
+      background: var(--blanco);
+      z-index: 1200;
+      transform: translateX(-100%);
+      transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+      box-shadow: 4px 0 30px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      border-radius: 0 24px 24px 0;
+    }
+    .drawer.open { transform: translateX(0); }
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(3px);
+      z-index: 1150;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s;
+    }
+    .drawer-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .drawer-header {
+      padding: 28px 24px;
+      border-bottom: 1px solid var(--gris-borde);
+    }
+    .drawer-header h3 { font-size: 1.7rem; color: var(--verde-oscuro); font-weight: 800; margin-bottom: 4px; }
+    .drawer-header p { font-size: 0.85rem; color: #5c6b7a; letter-spacing: 0.3px; }
+    .drawer-nav {
+      flex: 1;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 16px;
+      border-radius: 40px;
+      font-weight: 500;
+      color: #1f2937;
+      transition: all 0.2s;
+      cursor: pointer;
+      font-size: 1.05rem;
+    }
+    .nav-item i { width: 24px; font-size: 1.2rem; color: var(--verde-medio); }
+    .nav-item.active {
+      background: var(--verde-oscuro);
+      color: white;
+    }
+    .nav-item.active i { color: white; }
+    .nav-item:not(.active):hover { background: #f0f9f4; }
+    .drawer-footer-card {
+      margin: 20px 16px 28px;
+      background: var(--verde-mint);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: var(--sombra-suave);
+    }
+    .drawer-footer-card i { font-size: 2rem; color: var(--verde-oscuro); }
+    .drawer-footer-card div strong { font-size: 0.9rem; display: block; }
+    .drawer-footer-card span { font-size: 0.75rem; color: #2c5a3b; }
+
+    /* SECCIONES */
+    section { padding: 80px 24px; }
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #d9f0e6;
+      padding: 6px 16px;
+      border-radius: 60px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--verde-oscuro);
+      margin-bottom: 24px;
+      border: 1px solid #c0e0d0;
+    }
+    .badge i { font-size: 0.75rem; color: var(--verde-medio); }
+
+    /* HERO */
+    .hero-grid {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 40px;
+    }
+    .hero-text { flex: 1.2; }
+    .hero-illustration { flex: 0.9; position: relative; display: flex; justify-content: center; }
+    h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+    .green-highlight { color: var(--verde-oscuro); }
+    .desc-text { color: var(--gris-texto); margin: 20px 0 28px; font-size: 1.1rem; line-height: 1.5; max-width: 90%; }
+    .btn-group { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 48px; }
+    .btn-primary {
+      background: var(--verde-oscuro);
+      color: white;
+      padding: 14px 28px;
+      border-radius: 60px;
+      font-weight: 600;
+      border: none;
+      box-shadow: 0 8px 20px rgba(26, 107, 60, 0.25);
+      transition: 0.2s;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .btn-primary:hover { background: #0c5530; transform: scale(1.02); box-shadow: 0 12px 24px rgba(0,0,0,0.1);}
+    .btn-secondary {
+      background: white;
+      border: 1.5px solid var(--verde-oscuro);
+      color: var(--verde-oscuro);
+      padding: 14px 28px;
+      border-radius: 60px;
+      font-weight: 600;
+      transition: 0.2s;
+      cursor: pointer;
+    }
+    .btn-secondary:hover { background: #ecfdf3; transform: scale(1.02);}
+    .stats {
+      display: flex;
+      gap: 48px;
+      align-items: center;
+      flex-wrap: wrap;
+      border-top: 1px solid #cbd5e1;
+      padding-top: 30px;
+    }
+    .stat-item h3 { font-size: 2rem; font-weight: 800; color: var(--verde-oscuro); }
+    .stat-item p { font-size: 0.85rem; color: #5c6b7a; font-weight: 500; }
+
+    /* ilustración circular */
+    .circle-illustration {
+      width: 280px;
+      height: 280px;
+      background: radial-gradient(circle at 30% 20%, var(--verde-medio), var(--verde-oscuro));
+      border-radius: 50%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 20px 30px -10px rgba(0,0,0,0.2);
+    }
+    .planet-icon { font-size: 5rem; color: white; filter: drop-shadow(2px 4px 8px rgba(0,0,0,0.2)); }
+    .orbit-icon {
+      position: absolute;
+      width: 48px;
+      height: 48px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+      font-size: 1.5rem;
+    }
+    .orbit-1 { top: -15px; left: 20px; background: #fff3cf; color: #e67e22; }
+    .orbit-2 { bottom: -10px; right: 5px; background: #d4f5e6; color: var(--verde-oscuro); }
+    .orbit-3 { top: 60%; left: -25px; background: #ffe0e7; color: var(--rosa); }
+    .leaf-float {
+      position: absolute;
+      font-size: 1.6rem;
+      animation: floatLeaf 6s infinite ease-in-out;
+      opacity: 0.7;
+    }
+    @keyframes floatLeaf {
+      0% { transform: translateY(0px) rotate(0deg);}
+      50% { transform: translateY(-15px) rotate(10deg);}
+      100% { transform: translateY(0px) rotate(0deg);}
+    }
+
+    /* Tarjetas de características en columna vertical */
+    .cards-vertical {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      margin-top: 48px;
+    }
+    .feature-card-vertical {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+      box-shadow: var(--sombra-suave);
+      border: 1px solid #eef2f0;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .icon-square {
+      width: 58px;
+      height: 58px;
+      background: linear-gradient(145deg, var(--verde-medio), var(--verde-oscuro));
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: white;
+      flex-shrink: 0;
+    }
+    .feature-card-vertical h3 { font-size: 1.4rem; margin-bottom: 6px; }
+    .feature-card-vertical p { color: var(--gris-texto); }
+
+    /* Estilos para el mapa con plano */
+    #planoMap {
+      width: 100%;
+      height: 550px;
+      background: #f0faf5;
+      border-radius: 24px;
+      overflow: hidden;
+    }
+    .leaflet-popup-content {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      min-width: 220px;
+    }
+    .leaflet-popup-content strong {
+      color: var(--verde-oscuro);
+    }
+    .leaflet-popup-content .cientifico {
+      font-style: italic;
+      color: #2c6e49;
+      margin: 4px 0 8px;
+    }
+
+    /* Panel inferior de información */
+    .info-panel {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-top: 20px;
+      box-shadow: var(--sombra-suave);
+      border-left: 4px solid var(--verde-oscuro);
+      display: none;
+      transition: all 0.3s;
+      position: relative;
+    }
+    .info-panel.active {
+      display: block;
+    }
+    .info-panel .info-close {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      border: none;
+      background: transparent;
+      color: var(--verde-oscuro);
+      font-size: 1.5rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .info-panel .info-content {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .info-panel .info-text {
+      flex: 1;
+      min-width: 240px;
+    }
+    .info-panel .info-meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 16px;
+      margin: 10px 0 6px;
+    }
+    .info-panel .qr-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 130px;
+      padding: 6px;
+    }
+    .info-panel .qr-block img {
+      width: 118px;
+      height: 118px;
+      padding: 8px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #ffffff, #f4faf5);
+      border: 1px solid #dce8dd;
+      box-shadow: 0 6px 20px rgba(22, 71, 42, 0.12);
+    }
+    .info-panel .qr-label {
+      font-size: 0.78rem;
+      color: var(--gris-texto);
+      text-align: center;
+      font-weight: 600;
+    }
+    .info-panel .share-whatsapp-btn {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      margin-top: 4px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: #25d366;
+      color: white;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(37, 211, 102, 0.22);
+    }
+    .info-panel .share-whatsapp-btn.visible {
+      display: inline-flex;
+    }
+    .info-panel h3 {
+      font-size: 1.5rem;
+      color: var(--verde-oscuro);
+      margin-bottom: 4px;
+    }
+    .info-panel .cientifico {
+      font-style: italic;
+      color: #2c6e49;
+      margin-bottom: 12px;
+    }
+    .info-panel p {
+      margin: 6px 0;
+      color: var(--gris-texto);
+    }
+    .info-panel .ubicacion {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--gris-borde);
+      font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+      h1 { font-size: 2.2rem; }
+      .hero-grid { flex-direction: column; }
+      .desc-text { max-width: 100%;}
+      .stats { gap: 24px; justify-content: space-between;}
+      .feature-card-vertical { flex-direction: column; text-align: center; }
+      #planoMap { height: 350px; }
+    }
+    button { background: none; border: none; }
+    a { text-decoration: none; color: inherit; }
+  </style>
+</head>
+<body>
+
+<div class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></div>
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <h3>🌱 Chuquisaca</h3>
+    <p>UPTMA · Maracaibo</p>
+  </div>
+  <div class="drawer-nav">
+    <div class="nav-item active" data-section="inicio"><i class="fas fa-home"></i> Inicio</div>
+    <div class="nav-item" data-section="que-es"><i class="fas fa-info-circle"></i> ¿Qué es?</div>
+    <div class="nav-item" data-section="mision-vision"><i class="fas fa-seedling"></i> Misión y Visión</div>
+    <div class="nav-item" data-section="mapa"><i class="fas fa-map"></i> Mapa</div>
+    <div class="nav-item" data-section="contacto"><i class="fas fa-envelope"></i> Contacto</div>
+  </div>
+  <div class="drawer-footer-card">
+    <i class="fas fa-tree"></i>
+    <div><strong>🌳 10 Millones - Árboles meta</strong><span>Servicio Comunitario 2026</span></div>
+  </div>
+</div>
+
+<main>
+  <!-- HERO (Inicio) -->
+  <section id="inicio" style="background: var(--verde-mint); padding-top: 100px;">
+    <div class="container hero-grid">
+      <div class="hero-text">
+        <div class="badge"><i class="fas fa-circle" style="font-size: 8px;"></i> Servicio Comunitario · UPTMA Maracaibo</div>
+        <h1>Sembrando <span class="green-highlight">Vida</span> en<br>Venezuela 🌱</h1>
+        <p class="desc-text">Conoce el <strong>Plan Chuquisaca</strong> y explora nuestro mapa virtual con las especies arbóreas sembradas en la Universidad Politécnica Territorial de Maracaibo.</p>
+        <div class="btn-group">
+          <button class="btn-primary" id="verMapaBtn"><i class="fas fa-map-marked-alt"></i> Ver Mapa</button>
+          <button class="btn-secondary" id="conoceMasBtn"><i class="fas fa-info-circle"></i> Conocer más</button>
+        </div>
+        <div class="stats">
+          <div class="stat-item"><h3>10M</h3><p>Árboles meta</p></div>
+          <div class="stat-item"><h3>30</h3><p>Especies de la UPTMA</p></div>
+          <div class="stat-item"><h3>100%</h3><p>Autóctonas</p></div>
+        </div>
+      </div>
+      <div class="hero-illustration">
+        <div class="circle-illustration">
+          <i class="fas fa-globe-americas planet-icon"></i>
+          <div class="orbit-icon orbit-1"><i class="fas fa-leaf"></i></div>
+          <div class="orbit-icon orbit-2"><i class="fas fa-cogs"></i></div>
+          <div class="orbit-icon orbit-3"><i class="fas fa-tree"></i></div>
+          <i class="fas fa-leaf leaf-float" style="top: 10%; right: -15px; font-size: 24px;"></i>
+          <i class="fas fa-leaf leaf-float" style="bottom: 5%; left: -20px; font-size: 28px; animation-delay: 1s;"></i>
+          <i class="fas fa-leaf leaf-float" style="top: 40%; right: -25px; font-size: 20px; animation-delay: 2s;"></i>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ¿QUÉ ES EL PLAN CHUQUISACA? -->
+  <section id="que-es" style="background: white;">
+    <div class="container">
+      <div class="badge"><i class="fas fa-seedling"></i> Introducción</div>
+      <h2 style="font-size: 2.2rem; font-weight: 800;">¿Qué es el Plan <span class="green-highlight">Chuquisaca</span>?</h2>
+      <div style="background: var(--verde-claro-bg); border-radius: var(--radius-xl); padding: 32px; margin: 32px 0; display: flex; gap: 16px; flex-wrap: wrap;">
+        <i class="fas fa-quote-left" style="font-size: 3rem; color: var(--verde-medio);"></i>
+        <p style="font-size: 1.2rem; line-height: 1.5; max-width: 90%;">Es un programa nacional de <strong class="green-highlight">reforestación</strong> impulsado por el Gobierno de Venezuela que tiene como meta la siembra de <strong class="green-highlight">10 millones de árboles</strong> en todo el país, contribuyendo a la lucha contra el cambio climático y la recuperación de nuestros ecosistemas.</p>
+      </div>
+      <div class="cards-vertical">
+        <div class="feature-card-vertical">
+          <div class="icon-square"><i class="fas fa-leaf"></i></div>
+          <div><h3>Reforestación</h3><p>Siembra masiva a nivel nacional</p></div>
+        </div>
+        <div class="feature-card-vertical">
+          <div class="icon-square"><i class="fas fa-users"></i></div>
+          <div><h3>Comunidad</h3><p>Participación ciudadana activa</p></div>
+        </div>
+        <div class="feature-card-vertical">
+          <div class="icon-square"><i class="fas fa-globe"></i></div>
+          <div><h3>Sostenibilidad</h3><p>Impacto ambiental duradero</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MISIÓN Y VISIÓN -->
+  <section id="mision-vision" style="background: var(--verde-mint);">
+    <div class="container">
+      <div class="badge"><i class="fas fa-bullseye"></i> Propósito</div>
+      <h2 style="font-size: 2rem;">Nuestra <span class="green-highlight">Misión</span> y <span class="green-highlight">Visión</span></h2>
+      <div style="display: flex; flex-direction: row; gap: 30px; margin-top: 30px; overflow-x: auto; scrollbar-width: thin;">
+        <div class="card-mision" style="flex: 1; min-width: 280px; background: linear-gradient(135deg, var(--verde-oscuro) 0%, #0d5632 100%); border-radius: var(--radius-xl); padding: 32px; color: white;">
+          <div style="background: rgba(255,255,255,0.2); width: 50px; height: 50px; border-radius: 16px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-tree" style="font-size: 28px;"></i></div>
+          <h3 style="margin: 16px 0 8px;">Misión</h3>
+          <p>Restaurar los <strong>ecosistemas degradados</strong> y mitigar el cambio climático mediante la plantación de <strong>10 millones de árboles autóctonos y endémicos</strong> a nivel nacional.</p>
+          <div class="tag-group" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
+            <span style="background: rgba(255,255,255,0.2); padding: 5px 14px; border-radius: 60px; font-size: 0.75rem;">#Autóctonos</span>
+            <span style="background: rgba(255,255,255,0.2); padding: 5px 14px; border-radius: 60px; font-size: 0.75rem;">#Endémicos</span>
+            <span style="background: rgba(255,255,255,0.2); padding: 5px 14px; border-radius: 60px; font-size: 0.75rem;">#Restauración</span>
+          </div>
+        </div>
+        <div class="card-vision" style="flex: 1; min-width: 280px; background: white; border-radius: var(--radius-xl); padding: 32px; box-shadow: var(--sombra-suave);">
+          <div style="background: #e0f2fe; width: 50px; height: 50px; border-radius: 16px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-eye" style="font-size: 28px; color: #0284c7;"></i></div>
+          <div style="display: flex; justify-content: space-between; align-items: center;"><h3 style="margin: 16px 0 8px;">Visión</h3><span class="badge" style="background:#bae6fd;">2030</span></div>
+          <p>La <strong>restauración ecológica integral</strong> del territorio nacional mediante la meta de plantar 10 millones de árboles, integrando la <strong>ciencia</strong>, la <strong>soberanía alimentaria</strong> y la <strong>educación ambiental</strong> para mitigar los efectos del cambio climático.</p>
+          <div class="tag-group" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
+            <span style="background: #e6f7ef; padding: 5px 14px; border-radius: 60px; font-size: 0.75rem; color: var(--verde-oscuro);">#Ciencia</span>
+            <span style="background: #e6f7ef; padding: 5px 14px; border-radius: 60px; font-size: 0.75rem; color: var(--verde-oscuro);">#Soberanía</span>
+            <span style="background: #e6f7ef; padding: 5px 14px; border-radius: 60px; font-size: 0.75rem; color: var(--verde-oscuro);">#Educación</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAPA CON PLANO DEL CAMPUS -->
+  <section id="mapa" style="background: white;">
+    <div class="container">
+      <div class="badge"><i class="fas fa-map"></i> Explora</div>
+      <h2>Mapa <span class="green-highlight">Arbóreo</span> UPTMA</h2>
+      <p style="margin-bottom: 20px;">Haz clic en los marcadores sobre el plano del campus para conocer la información de cada especie.</p>
+
+      <div style="background: var(--verde-mint); border-radius: 32px; padding: 20px; box-shadow: var(--sombra-suave);">
+        <div style="background: white; padding: 12px 18px; border-radius: 60px; display: inline-flex; align-items: center; gap: 12px; margin-bottom: 20px; font-weight: 600;">
+          <i class="fas fa-draw-polygon"></i> Plano del Campus Central · UPTMA <i class="fas fa-circle" style="color: #0d9b6a; font-size: 10px;"></i>
+        </div>
+        
+        <!-- CONTENEDOR DEL MAPA -->
+        <div id="planoMap" style="width:100%; height:0; padding-bottom:80%; position:relative; border-radius:24px; overflow:hidden; background:#f0faf5;">
+          <div style="position:absolute; top:0; left:0; width:100%; height:100%;">
+            <div id="leafletPlano" style="width:100%; height:100%;"></div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 12px; font-size: 0.85rem; color: var(--gris-texto); display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+          <span><i class="fas fa-arrows-alt"></i> Arrastra para mover</span>
+          <span><i class="fas fa-search-plus"></i> Rueda para zoom</span>
+          <span><i class="fas fa-mouse-pointer"></i> Clic en árbol para ver información</span>
+        </div>
+
+        <!-- Panel inferior con información detallada -->
+        <div class="info-panel" id="infoPanel">
+          <button class="info-close" id="infoCloseBtn" aria-label="Cerrar información">×</button>
+          <div class="info-content">
+            <div class="info-text">
+              <h3 id="infoNombre">Árbol de Mango</h3>
+              <p class="cientifico" id="infoCientifico"><i>Mangifera indica</i></p>
+              <div class="info-meta">
+                <p id="infoGenero"><strong>Género:</strong> Mangifera</p>
+                <p id="infoEspecie"><strong>Especie:</strong> indica</p>
+                <p id="infoFamilia"><strong>Familia:</strong> Anacardiaceae</p>
+                <p id="infoEstrato"><strong>Estrato:</strong> Arbóreo (alto)</p>
+              </div>
+              <p id="infoDescripcion">Árboles maduros de gran porte, copas redondeadas y densas. Son los principales reguladores térmicos del área, aunque presentan signos de estrés hídrico y heridas mecánicas en la corteza.</p>
+              <p class="ubicacion" id="infoUbicacion"><i class="fas fa-map-marker-alt" style="color: var(--verde-oscuro);"></i> Cerca del edificio de Agroalimentación</p>
+            </div>
+            <div class="qr-block">
+              <img id="qrCodeImage" alt="Código QR del árbol" />
+              <div class="qr-label" id="qrCodeLabel">Escanear información del árbol</div>
+              <button id="shareWhatsappBtn" class="share-whatsapp-btn" type="button">
+                <i class="fab fa-whatsapp"></i> Compartir por WhatsApp
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- LEYENDA -->
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 20px; background: white; padding: 16px 20px; border-radius: 16px; box-shadow: var(--sombra-suave);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="display: inline-block; width: 16px; height: 16px; background:#4CAF50; border-radius: 50%;"></span>
+            <span style="font-weight: 500;">🌿 Jardín</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="display: inline-block; width: 16px; height: 16px; background:#FF9800; border-radius: 50%;"></span>
+            <span style="font-weight: 500;">🌿 Medicinales</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="display: inline-block; width: 16px; height: 16px; background:#2196F3; border-radius: 50%;"></span>
+            <span style="font-weight: 500;">🌳 Forestales</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="display: inline-block; width: 16px; height: 16px; background:#1a6b3c; border-radius: 50%;"></span>
+            <span style="font-weight: 500;">🌳 Originales</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA ÚNETE AL CAMBIO -->
+  <div id="contacto">
+    <div class="cta-section" style="background: linear-gradient(115deg, #0c5c30, #073d1e); text-align: center; border-radius: 48px; margin: 40px 24px; padding: 64px 24px; color: white;">
+      <i class="fas fa-leaf" style="font-size: 48px; margin-bottom: 20px; display: inline-block;"></i>
+      <h2 style="font-size: 2rem;">Únete al cambio 🌳</h2>
+      <p style="margin: 20px auto; max-width: 550px;">Forma parte de esta iniciativa. Siembra un árbol, comparte conocimiento y ayuda a restaurar nuestros ecosistemas desde la UPTMA.</p>
+      <div class="btn-group" style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
+        <!-- Botón del Canal de Whatsapp -->
+        <a href="https://whatsapp.com/channel/0029VbC772NIiRozLnLGkY1k" class="btn-primary" style="background: white; color: var(--verde-oscuro); padding: 14px 28px; border-radius: 60px; font-weight: 600; border: none; cursor: pointer; display: inline-block; text-decoration: none;">
+          <i class="fab fa-whatsapp"></i> Canal de Whatsapp
+        </a>
+        <!-- Botón de Instagram UPTMA -->
+        <a href="https://www.instagram.com/uptmaoficial?igsh=MXM3OWhlYnZybjd2MA==" class="btn-secondary" style="background: transparent; border: 1.5px solid white; color: white; padding: 14px 28px; border-radius: 60px; font-weight: 600; cursor: pointer; display: inline-block; text-decoration: none;">
+          <i class="fab fa-instagram"></i> Instagram UPTMA
+        </a>
+        <!-- Sitio Web -->
+        <a href="http://cest.iutm.edu.ve/" class="btn-secondary" style="background: transparent; border: 1.5px solid white; color: white; padding: 14px 28px; border-radius: 60px; font-weight: 600; cursor: pointer; display: inline-block; text-decoration: none;">
+          <i class="fas fa-globe"></i> Web UPTMA
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <footer style="background: #0a1628; padding: 48px 24px 32px; color: #cbd5e1; text-align: center;">
+    <div><i class="fas fa-leaf"></i> <strong>UPTMA Maracaibo</strong></div>
+    <p style="margin: 8px 0;">Plan Chuquisaca · Servicio Comunitario 2026</p>
+    <div class="social-icons">
+      <i class="fab fa-instagram" style="background: #1e2a3e; border-radius: 50%; padding: 10px; margin: 0 6px; font-size: 1.2rem; width: 40px; display: inline-block;"></i>
+      <i class="fab fa-twitter" style="background: #1e2a3e; border-radius: 50%; padding: 10px; margin: 0 6px; font-size: 1.2rem; width: 40px; display: inline-block;"></i>
+      <i class="fab fa-facebook" style="background: #1e2a3e; border-radius: 50%; padding: 10px; margin: 0 6px; font-size: 1.2rem; width: 40px; display: inline-block;"></i>
+    </div>
+    <hr style="margin: 20px auto; width: 60px; border-color: #2d3a4a;">
+    <p style="font-size: 0.75rem;">© 2026 Plan Chuquisaca Venezuela. Hecho con 💚 por estudiantes de la UPTMA.</p>
+  </footer>
+</main>
+
+<script>
+  // ============ MENÚ DRAWER ============
+  const menuBtn = document.getElementById('menuToggle');
+  const drawer = document.getElementById('drawer');
+  const overlay = document.getElementById('drawerOverlay');
+  
+  function closeDrawer() { 
+    drawer.classList.remove('open'); 
+    overlay.classList.remove('active'); 
+  }
+  
+  function openDrawer() { 
+    drawer.classList.add('open'); 
+    overlay.classList.add('active'); 
+  }
+  
+  menuBtn.addEventListener('click', openDrawer);
+  overlay.addEventListener('click', closeDrawer);
+  
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      const sectionId = item.getAttribute('data-section');
+      if(sectionId) {
+        const target = document.getElementById(sectionId);
+        if(target) target.scrollIntoView({ behavior: 'smooth' });
+        closeDrawer();
+      }
+      document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+
+  // Botones de scroll
+  const verMapaBtn = document.getElementById('verMapaBtn');
+  const conoceMasBtn = document.getElementById('conoceMasBtn');
+  if(verMapaBtn) verMapaBtn.addEventListener('click', () => document.getElementById('mapa').scrollIntoView({ behavior: 'smooth' }));
+  if(conoceMasBtn) conoceMasBtn.addEventListener('click', () => document.getElementById('que-es').scrollIntoView({ behavior: 'smooth' }));
+
+  // ============ MAPA CON TODAS LAS ESPECIES ============
+  document.addEventListener('DOMContentLoaded', function() {
+    const mapContainer = document.getElementById('leafletPlano');
+    if (!mapContainer) {
+      console.error('No se encontró el contenedor del mapa');
+      return;
+    }
+
+    // Configuración de la imagen del plano
+    const imageUrl = 'plano-uptm.png'; // Asegúrate de que la imagen esté en la misma carpeta o ajusta la ruta
+    const imageWidth = 1200;
+    const imageHeight = 900;
+    const imageBounds = [[0, 0], [imageHeight, imageWidth]];
+
+    // Inicializar mapa
+    const map = L.map('leafletPlano', {
+      zoomControl: true,
+      scrollWheelZoom: true,
+      crs: L.CRS.Simple,
+      maxBounds: imageBounds,
+      maxBoundsViscosity: 1.0,
+      minZoom: -1,
+      maxZoom: 8,
+      zoomSnap: 0.5,
+      zoomDelta: 0.5
+    });
+
+    L.imageOverlay(imageUrl, imageBounds, { opacity: 1, zIndex: 2 }).addTo(map);
+    map.fitBounds(imageBounds, { padding: [0, 0] });
+
+    // ============ BASE DE DATOS DE ESPECIES ============
+    const especies = [
+      // ========== ESPECIES DE JARDÍN (Verde #4CAF50) ==========
+      {
+        nombre: "Cucaracha Morada o Amor de Hombre",
+        cientifico: "Tradescantia pallida",
+        genero: "Tradescantia",
+        especie: "pallida",
+        familia: "Commelinaceae",
+        estrato: "Herbáceo (cobertura baja en maceteros)",
+        descripcion: "Planta perenne de follaje púrpura denso que recubre masivamente la base de contenedores de concreto. Alta resistencia a la radiación directa, mantiene su pigmentación lila.",
+        ubicacion: "Entrada de la Floresta - Jardines",
+        coords: [100, 100],
+        color: "#4CAF50",
+        icono: "🌸"
+      },
+      {
+        nombre: "Cocuiza o Agave",
+        cientifico: "Agave angustifolia",
+        genero: "Agave",
+        especie: "angustifolia",
+        familia: "Asparagaceae",
+        estrato: "Suculenta",
+        descripcion: "Hojas largas y puntiagudas con espinas. Usada para cercos vivos y artesanías.",
+        ubicacion: "Entrada de la Floresta - Cerca viva",
+        coords: [150, 180],
+        color: "#4CAF50",
+        icono: "🌵"
+      },
+      {
+        nombre: "Amoena o Lotería",
+        cientifico: "Dieffenbachia seguine",
+        genero: "Dieffenbachia",
+        especie: "seguine",
+        familia: "Araceae",
+        estrato: "Herbáceo",
+        descripcion: "Hojas grandes con manchas blancas. Muy ornamental, purifica el aire, tóxica.",
+        ubicacion: "Entrada de la Floresta - Oficinas",
+        coords: [200, 140],
+        color: "#4CAF50",
+        icono: "🍃"
+      },
+      {
+        nombre: "Drácena marginata",
+        cientifico: "Dracaena reflexa var. angustifolia",
+        genero: "Dracaena",
+        especie: "reflexa",
+        familia: "Asparagaceae",
+        estrato: "Arbustivo",
+        descripcion: "Tronco delgado y hojas alargadas con bordes rojizos. Muy ornamental.",
+        ubicacion: "Entrada de la Floresta - Jardín principal",
+        coords: [250, 200],
+        color: "#4CAF50",
+        icono: "🌴"
+      },
+      {
+        nombre: "Agave amarillo",
+        cientifico: "Agave desmettiana 'Variegata'",
+        genero: "Agave",
+        especie: "desmettiana",
+        familia: "Asparagaceae",
+        estrato: "Suculenta",
+        descripcion: "Variedad de agave con hojas anchas de bordes amarillos. Resistente a la sequía.",
+        ubicacion: "Entrada de la Floresta - Maceteros",
+        coords: [300, 160],
+        color: "#4CAF50",
+        icono: "🟡"
+      },
+      {
+        nombre: "Palma abanico o Palma llanera",
+        cientifico: "Copernicia tectorum",
+        genero: "Copernicia",
+        especie: "tectorum",
+        familia: "Arecaceae",
+        estrato: "Arbóreo",
+        descripcion: "Palmera nativa de Venezuela, con hojas en abanico. Símbolo de los llanos.",
+        ubicacion: "Entrada de la Floresta - Zona central",
+        coords: [350, 220],
+        color: "#4CAF50",
+        icono: "🌴"
+      },
+      {
+        nombre: "Aralia cortina o Árbol de la felicidad",
+        cientifico: "Polyscias guilfoylei",
+        genero: "Polyscias",
+        especie: "guilfoylei",
+        familia: "Araliaceae",
+        estrato: "Arbustivo",
+        descripcion: "Hojas verdes con bordes irregulares. Se usa como seto o en macetas.",
+        ubicacion: "Entrada de la Floresta - Acceso",
+        coords: [400, 180],
+        color: "#4CAF50",
+        icono: "🌿"
+      },
+      {
+        nombre: "Rosal o Rosa",
+        cientifico: "Rosa spp.",
+        genero: "Rosa",
+        especie: "spp.",
+        familia: "Rosaceae",
+        estrato: "Arbustivo",
+        descripcion: "Arbusto espinoso con flores fragantes de diversos colores.",
+        ubicacion: "Entrada de la Floresta - Jardín de rosas",
+        coords: [450, 240],
+        color: "#4CAF50",
+        icono: "🌹"
+      },
+      {
+        nombre: "Trinitaria",
+        cientifico: "Bougainvillea glabra 'Variegata'",
+        genero: "Bougainvillea",
+        especie: "glabra",
+        familia: "Nyctaginaceae",
+        estrato: "Enredadera",
+        descripcion: "Enredadera con brácteas coloridas (rosa, rojo, naranja). Muy resistente.",
+        ubicacion: "Entrada de la Floresta - Muros",
+        coords: [500, 200],
+        color: "#4CAF50",
+        icono: "❤️"
+      },
+      {
+        nombre: "Macaranga o Árbol de sombrilla",
+        cientifico: "Macaranga tanarius",
+        genero: "Macaranga",
+        especie: "tanarius",
+        familia: "Euphorbiaceae",
+        estrato: "Arbóreo",
+        descripcion: "Árbol de rápido crecimiento, hojas grandes en forma de sombrilla.",
+        ubicacion: "Entrada de la Floresta - Zona de sombra",
+        coords: [550, 260],
+        color: "#4CAF50",
+        icono: "☂️"
+      },
+      {
+        nombre: "Caña muda o Millonaria",
+        cientifico: "Dieffenbachia amoena",
+        genero: "Dieffenbachia",
+        especie: "amoena",
+        familia: "Araceae",
+        estrato: "Herbáceo",
+        descripcion: "Hojas grandes con manchas crema. Muy ornamental, tóxica. Atrae abundancia.",
+        ubicacion: "Entrada de la Floresta - Oficinas",
+        coords: [600, 220],
+        color: "#4CAF50",
+        icono: "🌿"
+      },
+
+      // ========== ESPECIES MEDICINALES (Naranja #FF9800) ==========
+      {
+        nombre: "Mala madre",
+        cientifico: "Kalanchoe pinnata",
+        genero: "Kalanchoe",
+        especie: "pinnata",
+        familia: "Crassulaceae",
+        estrato: "Suculenta",
+        descripcion: "Hojas carnosas, usada en medicina tradicional para inflamaciones y heridas.",
+        ubicacion: "Entrada de la Floresta - Huerto medicinal",
+        coords: [100, 500],
+        color: "#FF9800",
+        icono: "🌿"
+      },
+      {
+        nombre: "Limoncillo",
+        cientifico: "Duranta erecta",
+        genero: "Duranta",
+        especie: "erecta",
+        familia: "Verbenaceae",
+        estrato: "Arbustivo",
+        descripcion: "Flores lilas y frutos amarillos. Hojas con aroma cítrico, usadas en remedios caseros.",
+        ubicacion: "Entrada de la Floresta - Cerca viva",
+        coords: [180, 520],
+        color: "#FF9800",
+        icono: "🍋"
+      },
+      {
+        nombre: "Lengua de suegra",
+        cientifico: "Sansevieria trifasciata",
+        genero: "Sansevieria",
+        especie: "trifasciata",
+        familia: "Asparagaceae",
+        estrato: "Herbáceo",
+        descripcion: "Hojas erectas y rígidas con manchas verdes. Muy resistente, purifica el aire.",
+        ubicacion: "Entrada de la Floresta - Interiores",
+        coords: [260, 480],
+        color: "#FF9800",
+        icono: "🐍"
+      },
+      {
+        nombre: "Limón de cerca o silvestre",
+        cientifico: "Swinglea glutinosa",
+        genero: "Swinglea",
+        especie: "glutinosa",
+        familia: "Rutaceae",
+        estrato: "Arbustivo",
+        descripcion: "Arbusto espinoso con frutos pequeños y ácidos. Usado como cerca viva.",
+        ubicacion: "Entrada de la Floresta - Cerca perimetral",
+        coords: [340, 550],
+        color: "#FF9800",
+        icono: "🍋"
+      },
+      {
+        nombre: "Palma de Jardín o Palma Areca",
+        cientifico: "Dypsis lutescens",
+        genero: "Dypsis",
+        especie: "lutescens",
+        familia: "Arecaceae",
+        estrato: "Arbustivo / Árbol pequeño",
+        descripcion: "Tallos erectos y anillados, sobresale en estructuras confinadas de concreto. Se encuentra en etapa juvenil, con crecimiento limitado por el espacio del sustrato.",
+        ubicacion: "Entrada de la Floresta - Interior de oficinas",
+        coords: [420, 490],
+        color: "#FF9800",
+        icono: "🌴"
+      },
+      {
+        nombre: "Escancel o Té de Árbol rojo",
+        cientifico: "Alternanthera brasiliana",
+        genero: "Alternanthera",
+        especie: "brasiliana",
+        familia: "Amaranthaceae",
+        estrato: "Herbáceo",
+        descripcion: "Hojas rojizas, usada como ornamental y en infusiones para problemas digestivos.",
+        ubicacion: "Entrada de la Floresta - Jardín",
+        coords: [500, 520],
+        color: "#FF9800",
+        icono: "🌿"
+      },
+      {
+        nombre: "Tuna o Nopal",
+        cientifico: "Opuntia ficus-indica",
+        genero: "Opuntia",
+        especie: "ficus-indica",
+        familia: "Cactaceae",
+        estrato: "Suculenta",
+        descripcion: "Cactus de tallos aplanados, produce frutos comestibles (tunas). Resistente a la sequía.",
+        ubicacion: "Entrada de la Floresta - Zona árida",
+        coords: [580, 480],
+        color: "#FF9800",
+        icono: "🌵"
+      },
+      {
+        nombre: "Orégano Orejón",
+        cientifico: "Plectranthus amboinicus",
+        genero: "Plectranthus",
+        especie: "amboinicus",
+        familia: "Lamiaceae",
+        estrato: "Herbáceo",
+        descripcion: "Planta aromática de hojas carnosas, usada como condimento y para problemas respiratorios.",
+        ubicacion: "Entrada de la Floresta - Huerto",
+        coords: [660, 540],
+        color: "#FF9800",
+        icono: "🌿"
+      },
+      {
+        nombre: "Sábila",
+        cientifico: "Aloe vera",
+        genero: "Aloe",
+        especie: "vera",
+        familia: "Asphodelaceae",
+        estrato: "Suculenta",
+        descripcion: "Hojas alargadas con gel en su interior. Usada para quemaduras, heridas y cuidado de la piel.",
+        ubicacion: "Entrada de la Floresta - Huerto medicinal",
+        coords: [740, 500],
+        color: "#FF9800",
+        icono: "🌵"
+      },
+      {
+        nombre: "Ixora o Coralillo",
+        cientifico: "Ixora coccinea",
+        genero: "Ixora",
+        especie: "coccinea",
+        familia: "Rubiaceae",
+        estrato: "Arbustivo",
+        descripcion: "Flores rojas o anaranjadas en racimos. Usada en jardinería y en medicina tradicional.",
+        ubicacion: "Entrada de la Floresta - Jardín",
+        coords: [820, 530],
+        color: "#FF9800",
+        icono: "🌸"
+      },
+
+      // ========== ESPECIES FORESTALES (Azul #2196F3) ==========
+      {
+        nombre: "Jacarandá o Nazareno",
+        cientifico: "Jacaranda mimosifolia",
+        genero: "Jacaranda",
+        especie: "mimosifolia",
+        familia: "Bignoniaceae",
+        estrato: "Arbóreo",
+        descripcion: "Árbol de copa amplia, flores azul-morado en primavera. Muy ornamental.",
+        ubicacion: "Entrada de la Floresta - Área de parqueo",
+        coords: [100, 750],
+        color: "#2196F3",
+        icono: "🌳"
+      },
+      {
+        nombre: "Acacia de Constantinopla o Árbol de seda",
+        cientifico: "Albizia julibrissin",
+        genero: "Albizia",
+        especie: "julibrissin",
+        familia: "Fabaceae",
+        estrato: "Arbóreo",
+        descripcion: "Hojas finas y flores rosadas con forma de pompones. Madera ligera.",
+        ubicacion: "Entrada de la Floresta - Zona de descanso",
+        coords: [250, 780],
+        color: "#2196F3",
+        icono: "🌿"
+      },
+      {
+        nombre: "Neem o Nim",
+        cientifico: "Azadirachta indica",
+        genero: "Azadirachta",
+        especie: "indica",
+        familia: "Meliaceae",
+        estrato: "Arbóreo",
+        descripcion: "Árbol de rápido crecimiento, con propiedades insecticidas y medicinales.",
+        ubicacion: "Entrada de la Floresta - Área de cultivo",
+        coords: [400, 720],
+        color: "#2196F3",
+        icono: "🌳"
+      },
+
+      // ========== ESPECIES ORIGINALES (Verde oscuro #1a6b3c) ==========
+      {
+        nombre: "Árbol de Mango",
+        cientifico: "Mangifera indica",
+        genero: "Mangifera",
+        especie: "indica",
+        familia: "Anacardiaceae",
+        estrato: "Arbóreo (alto)",
+        descripcion: "Árboles maduros de gran porte, copas redondeadas y densas. Son los principales reguladores térmicos del área, aunque presentan signos de estrés hídrico y heridas mecánicas en la corteza.",
+        ubicacion: "Cerca del edificio de Agroalimentación",
+        coords: [550, 400],
+        color: "#1a6b3c",
+        icono: "🥭"
+      },
+      {
+        nombre: "San Francisco (flor amarilla)",
+        cientifico: "Acacia macracantha",
+        genero: "Acacia",
+        especie: "macracantha",
+        familia: "Fabaceae",
+        estrato: "Arbóreo",
+        descripcion: "Árbol de porte medio a alto, con flores de color amarillo brillante y follaje fino. Muy ornamental y útil como especie de sombra o cercado vivo.",
+        ubicacion: "Zona de árboles ornamentales",
+        coords: [650, 700],
+        color: "#2196F3",
+        icono: "🌼"
+      },
+      {
+        nombre: "Mamón o Lechosa",
+        cientifico: "Carica papaya",
+        genero: "Carica",
+        especie: "papaya",
+        familia: "Caricaceae",
+        estrato: "Arbóreo pequeño",
+        descripcion: "Árbol o arbusto de rápido crecimiento con frutos comestibles y follaje denso. Es una especie muy apreciada en huertos familiares y zonas de aprovechamiento agrícola.",
+        ubicacion: "Área de huerto",
+        coords: [480, 640],
+        color: "#1a6b3c",
+        icono: "🍈"
+      },
+      {
+        nombre: "Plátano o Banano",
+        cientifico: "Musa paradisiaca",
+        genero: "Musa",
+        especie: "paradisiaca",
+        familia: "Musaceae",
+        estrato: "Herbáceo / Arbóreo pequeño",
+        descripcion: "Planta de gran follaje, frutos comestibles y alto valor ornamental. También aporta sombra y sirve como especie de aprovechamiento agrícola.",
+        ubicacion: "Sector de producción y sombra",
+        coords: [820, 660],
+        color: "#4CAF50",
+        icono: "🍌"
+      },
+      {
+        nombre: "Roble",
+        cientifico: "Quercus spp.",
+        genero: "Quercus",
+        especie: "spp.",
+        familia: "Fagaceae",
+        estrato: "Arbóreo",
+        descripcion: "Árboles de gran porte, aportan madera y alimento para fauna local.",
+        ubicacion: "Zona de administración",
+        coords: [700, 600],
+        color: "#8B5A2B",
+        icono: "🌳"
+      },
+      {
+        nombre: "Cenizo / Arbusto de Bordura",
+        cientifico: "Leucophyllum frutescens",
+        genero: "Leucophyllum",
+        especie: "frutescens",
+        familia: "Scrophulariaceae",
+        estrato: "Arbustivo (medio)",
+        descripcion: "Dispuestas en hileras laterales para delimitar caminerías. Follaje pubescente verde-grisáceo que refleja el exceso de sol, pero su crecimiento es irregular por las limitantes del suelo.",
+        ubicacion: "Cerca del estacionamiento",
+        coords: [300, 700],
+        color: "#f39c12",
+        icono: "🌿"
+      }
+    ];
+
+    // ============ FUNCIONES AUXILIARES ============
+    function slugify(text) {
+      return String(text || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 80);
+    }
+
+    function obtenerGeneroEspecie(data) {
+      const generoDesdeDato = (data.genero || '').trim();
+      const especieDesdeDato = (data.especie || '').trim();
+      return {
+        genero: generoDesdeDato || '-',
+        especie: especieDesdeDato || '-'
+      };
+    }
+
+    // ============ REFERENCIAS AL PANEL ============
+    const infoPanel = document.getElementById('infoPanel');
+    const infoCloseBtn = document.getElementById('infoCloseBtn');
+    const infoNombre = document.getElementById('infoNombre');
+    const infoCientifico = document.getElementById('infoCientifico');
+    const infoGenero = document.getElementById('infoGenero');
+    const infoEspecie = document.getElementById('infoEspecie');
+    const infoFamilia = document.getElementById('infoFamilia');
+    const infoEstrato = document.getElementById('infoEstrato');
+    const infoDescripcion = document.getElementById('infoDescripcion');
+    const infoUbicacion = document.getElementById('infoUbicacion');
+    const qrCodeImage = document.getElementById('qrCodeImage');
+    const qrCodeLabel = document.getElementById('qrCodeLabel');
+    const shareWhatsappBtn = document.getElementById('shareWhatsappBtn');
+
+    function obtenerEnlaceArbol(data) {
+      const baseUrl = window.location.href.split('#')[0];
+      const treeId = `${slugify(data.nombre)}-${slugify(data.cientifico)}`;
+      return `${baseUrl}#arbol=${encodeURIComponent(treeId)}`;
+    }
+
+    function actualizarBotonCompartir(data) {
+      if (!shareWhatsappBtn) return;
+
+      const enlaceArbol = obtenerEnlaceArbol(data);
+      const mensaje = `Mira este árbol del servicio comunitario: ${data.nombre} (${data.cientifico})\n${enlaceArbol}`;
+
+      shareWhatsappBtn.classList.add('visible');
+      shareWhatsappBtn.onclick = function() {
+        window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank');
+      };
+    }
+
+    // ============ GENERAR QR CON ENLACE A LA MISMA PÁGINA ============
+    function generarQR(data) {
+      if (!qrCodeImage) return;
+
+      const enlaceArbol = obtenerEnlaceArbol(data);
+      
+      // Usar la API de QR Server para generar el código QR
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(enlaceArbol)}&bgcolor=ffffff&color=1a6b3c`;
+
+      // Función de respaldo por si falla la API
+      qrCodeImage.onerror = function() {
+        // Crear un QR de respaldo con SVG
+        const fallbackSvg = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="110" height="110" viewBox="0 0 110 110">
+            <rect width="110" height="110" rx="12" fill="#ffffff" />
+            <rect x="8" y="8" width="94" height="94" rx="8" fill="#ffffff" stroke="#1a6b3c" stroke-width="2" />
+            <g fill="#1a6b3c">
+              <rect x="18" y="18" width="16" height="16" />
+              <rect x="18" y="40" width="8" height="8" />
+              <rect x="32" y="40" width="8" height="8" />
+              <rect x="46" y="18" width="8" height="8" />
+              <rect x="58" y="18" width="16" height="16" />
+              <rect x="18" y="62" width="8" height="8" />
+              <rect x="32" y="62" width="16" height="16" />
+              <rect x="54" y="42" width="8" height="8" />
+              <rect x="68" y="42" width="8" height="8" />
+              <rect x="82" y="18" width="8" height="8" />
+              <rect x="82" y="32" width="16" height="16" />
+              <rect x="66" y="54" width="16" height="16" />
+              <rect x="46" y="72" width="8" height="8" />
+              <rect x="66" y="72" width="8" height="8" />
+              <rect x="82" y="66" width="8" height="8" />
+              <rect x="82" y="82" width="8" height="8" />
+            </g>
+            <text x="55" y="106" font-family="Arial" font-size="6" text-anchor="middle" fill="#1a6b3c">${data.nombre.slice(0, 24)}</text>
+          </svg>`;
+        
+        qrCodeImage.src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(fallbackSvg)}`;
+      };
+
+      qrCodeImage.src = qrUrl;
+      qrCodeImage.alt = `Código QR de ${data.nombre}`;
+      qrCodeLabel.textContent = `Escanea para ver: ${data.nombre}`;
+    }
+
+    // ============ MOSTRAR INFORMACIÓN EN EL PANEL ============
+    function mostrarInformacion(data) {
+      const taxonomia = obtenerGeneroEspecie(data);
+      
+      infoNombre.textContent = data.nombre;
+      infoCientifico.textContent = data.cientifico;
+      infoGenero.innerHTML = `<strong>Género:</strong> ${taxonomia.genero}`;
+      infoEspecie.innerHTML = `<strong>Especie:</strong> ${taxonomia.especie}`;
+      infoFamilia.innerHTML = `<strong>Familia:</strong> ${data.familia}`;
+      infoEstrato.innerHTML = `<strong>Estrato:</strong> ${data.estrato}`;
+      infoDescripcion.textContent = data.descripcion;
+      infoUbicacion.innerHTML = `<i class="fas fa-map-marker-alt" style="color: var(--verde-oscuro);"></i> ${data.ubicacion}`;
+      
+      // Generar QR con enlace a esta misma página
+      generarQR(data);
+      actualizarBotonCompartir(data);
+      
+      // Mostrar el panel
+      infoPanel.classList.add('active');
+      
+      // Hacer scroll suave al panel
+      infoPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // ============ OCULTAR INFORMACIÓN ============
+    function ocultarInformacion() {
+      infoPanel.classList.remove('active');
+      if (shareWhatsappBtn) {
+        shareWhatsappBtn.classList.remove('visible');
+      }
+    }
+
+    if (infoCloseBtn) {
+      infoCloseBtn.addEventListener('click', ocultarInformacion);
+    }
+
+    // ============ ABRIR ÁRBOL DESDE EL HASH DE LA URL ============
+    function abrirArbolDesdeHash() {
+      const hash = window.location.hash || '';
+      
+      // Extraer el parámetro 'arbol' del hash
+      const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
+      const arbolSlug = params.get('arbol');
+
+      if (!arbolSlug) return;
+
+      // Buscar la especie que coincida con el slug
+      const especieSeleccionada = especies.find(esp => {
+        const id = `${slugify(esp.nombre)}-${slugify(esp.cientifico)}`;
+        return id === arbolSlug;
+      });
+
+      if (!especieSeleccionada) return;
+
+      // Hacer scroll al mapa
+      const mapaSection = document.getElementById('mapa');
+      if (mapaSection) {
+        mapaSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      // Pequeño retraso para asegurar que el mapa esté visible
+      setTimeout(() => {
+        mostrarInformacion(especieSeleccionada);
+        
+        // Centrar el mapa en la ubicación de la planta
+        map.setView([especieSeleccionada.coords[0], especieSeleccionada.coords[1]], 4, {
+          animate: true,
+          duration: 1
+        });
+      }, 500);
+    }
+
+    // ============ CREAR MARCADORES EN EL MAPA ============
+    especies.forEach(esp => {
+      const icon = L.divIcon({
+        className: 'custom-tree-marker',
+        html: `<div style="background:${esp.color}; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:18px; box-shadow: 0 3px 10px rgba(0,0,0,0.3); border:2px solid white; cursor:pointer; transition: transform 0.2s;">${esp.icono}</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+
+      const marker = L.marker([esp.coords[0], esp.coords[1]], { icon }).addTo(map);
+
+      // Al hacer clic en el marcador, mostrar información
+      marker.on('click', function() {
+        mostrarInformacion(esp);
+      });
+    });
+
+    // ============ BOTÓN DE UBICACIÓN EN GOOGLE MAPS ============
+    const ubicacionBtn = L.control({ position: 'topright' });
+
+    ubicacionBtn.onAdd = function() {
+      const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+      div.style.background = 'white';
+      div.style.width = '40px';
+      div.style.height = '40px';
+      div.style.display = 'flex';
+      div.style.alignItems = 'center';
+      div.style.justifyContent = 'center';
+      div.style.borderRadius = '8px';
+      div.style.cursor = 'pointer';
+      div.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+      div.style.fontSize = '18px';
+      div.innerHTML = '<i class="fas fa-location-arrow" style="color:#1a6b3c;"></i>';
+      div.title = 'Abrir ubicación en Google Maps';
+      
+      div.onclick = function() {
+        if (navigator.geolocation) {
+          div.innerHTML = '<i class="fas fa-spinner fa-spin" style="color:#1a6b3c;"></i>';
+          navigator.geolocation.getCurrentPosition(
+            function(position) {
+              const lat = position.coords.latitude;
+              const lng = position.coords.longitude;
+              const url = `https://www.google.com/maps?q=${lat},${lng}&z=17`;
+              window.open(url, '_blank');
+              div.innerHTML = '<i class="fas fa-location-arrow" style="color:#1a6b3c;"></i>';
+            },
+            function() {
+              const url = 'https://www.google.com/maps?q=Universidad+Politecnica+Territorial+de+Maracaibo&z=16';
+              window.open(url, '_blank');
+              div.innerHTML = '<i class="fas fa-location-arrow" style="color:#1a6b3c;"></i>';
+            }
+          );
+        } else {
+          const url = 'https://www.google.com/maps?q=Universidad+Politecnica+Territorial+de+Maracaibo&z=16';
+          window.open(url, '_blank');
+        }
+      };
+      
+      return div;
+    };
+    
+    ubicacionBtn.addTo(map);
+
+    // ============ REDIMENSIONAR EL MAPA ============
+    window.addEventListener('resize', function() {
+      map.invalidateSize();
+    });
+
+    // ============ DETECTAR CAMBIOS EN EL HASH ============
+    window.addEventListener('hashchange', function() {
+      abrirArbolDesdeHash();
+    });
+
+    // ============ CARGAR ÁRBOL SI VIENE EN EL HASH AL INICIAR ============
+    abrirArbolDesdeHash();
+  });
+</script>
+</body>
+</html>
